@@ -1,18 +1,17 @@
 version: '3.8'
 
 services:
-  # Database Service
+  # Database Service for login & products & payments
   db:
     image: postgres:15-alpine
     restart: always
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: NewPassword123  # Match this with your .env
-      POSTGRES_DB: login_db
+      POSTGRES_PASSWORD: NewPassword123  # Make sure this matches .env in your services
+      POSTGRES_DB: login_db              # Main DB
     ports:
       - "5432:5432"
     volumes:
-      # This maps your local file to the Postgres init folder
       - ./back/init.sql:/docker-entrypoint-initdb.d/init.sql
 
   # Backend Service
@@ -42,13 +41,13 @@ services:
     depends_on:
       - backend
 
-  # product service
+  # Product Service
   product-service:
     build: ./product
     ports:
       - "4000:4000"
     volumes:
-      - ./product-service:/app
+      - ./product:/app
       - /app/node_modules
     depends_on:
       - db
@@ -57,3 +56,17 @@ services:
       DB_USER: postgres
       DB_PASSWORD: NewPassword123
       DB_NAME: product_db
+
+  # Payment Service (new)
+  payment-service:
+    build: ./payment
+    container_name: payment-service
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./payment:/app
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://postgres:NewPassword123@db:5432/payment_db
+      JWT_SECRET: your_jwt_secret
