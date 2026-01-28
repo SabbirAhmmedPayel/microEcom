@@ -1,1 +1,1 @@
-This is just a basic template for a login /signup website
+This is just a basic template for an e commerce app that has microservice architecture
