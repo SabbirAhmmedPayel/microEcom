@@ -1,21 +1,20 @@
 version: '3.8'
 
 services:
-  # Database Service
+  # 1. Database Service
   db:
     image: postgres:15-alpine
     restart: always
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: NewPassword123  # Match this with your .env
-      POSTGRES_DB: login_db
+      POSTGRES_PASSWORD: NewPassword123
+      POSTGRES_DB: micro_db  # Using a unified DB name or ensure init.sql creates multiple
     ports:
       - "5432:5432"
     volumes:
-      # This maps your local file to the Postgres init folder
       - ./back/init.sql:/docker-entrypoint-initdb.d/init.sql
 
-  # Backend Service
+  # 2. Backend Service (Node.js)
   backend:
     build: ./back
     ports:
@@ -29,9 +28,34 @@ services:
       DB_HOST: db
       DB_USER: postgres
       DB_PASSWORD: NewPassword123
-      DB_NAME: login_db
+      DB_NAME: micro_db
+      JWT_SECRET: your_jwt_secret
 
-  # Frontend Service
+  # 3. Product Service (FastAPI)
+  product-service:
+    build: ./product
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./product:/app
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://postgres:NewPassword123@db:5432/micro_db
+      JWT_SECRET: your_jwt_secret
+
+  # 4. Order Service (FastAPI) - FIXED POSITION
+  order:
+    build: ./order
+    ports:
+      - "8002:8000"
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://postgres:NewPassword123@db:5432/micro_db
+      JWT_SECRET: your_jwt_secret
+
+  # 5. Frontend Service
   frontend:
     build: ./front
     ports:
@@ -41,19 +65,3 @@ services:
       - /app/node_modules
     depends_on:
       - backend
-
-  # product service
-  product-service:
-    build: ./product
-    ports:
-      - "4000:4000"
-    volumes:
-      - ./product-service:/app
-      - /app/node_modules
-    depends_on:
-      - db
-    environment:
-      DB_HOST: db
-      DB_USER: postgres
-      DB_PASSWORD: NewPassword123
-      DB_NAME: product_db
